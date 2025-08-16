@@ -103,12 +103,24 @@ This ensures the project remains portfolio-safe while demonstrating **realistic 
 
 ```text
 ├── scripts/
-│   ├── Schema_script.sql     # Database schema creation and relationships
-│   ├── Cleaning_data.sql     # Step-by-step data cleaning queries
+│   ├── Schema_script.sql      # Database schema creation and relationships
+│   ├── Cleaning_data.sql      # Step-by-step data cleaning queries
 │
-├── dashboards/               # Tableau workbook and exports
+├── data/                      # Raw CSV files used for database loading
+│   ├── cities.csv
+│   ├── brands.csv
+│   ├── body_types.csv
+│   ├── service_modes.csv
+│   ├── vehicle_classes.csv
+│   ├── lines.csv
+│   ├── versions.csv
+│   ├── vehicle_statuses.csv
+│   ├── vehicles.csv
 │
-└── README.md                 # Project documentation
+├── dashboards/                # Tableau workbook and exports
+│
+└── README.md                  # Project documentation
+
 ```
 
 ## ✅ Results & Learnings  
