@@ -72,10 +72,29 @@ from vehicles_clean a
 left join vehicle_classes b on a.vehicle_class_id = b.vehicle_class_id
 group by vehicle_class;
 
--- step 6: correct number of doors according to vehicle class rules
+/***********************************************************************
+ Step 6: Correct number of doors
+ ------------------------------------------------------------------------
+ 🎯 Objective:
+ - Standardize the variable `num_doors` according to vehicle type.
 
--- fix num_doors with 3-level fallback of modes and class-specific ranges
+ 🛠️ Problem:
+ - Motorcycles were assigned doors, which is invalid.
+ - Cars and pickups had values outside the valid range [2–5].
+ - Trucks had values outside the valid range [1–4].
+ - Some vehicles had missing or extreme values without a mode.
 
+ ✅ Solution / Approach:
+ - Motorcycles: assign 0 doors.
+ - Cars and pickups:
+     - If outside the range, assign the mode of 
+       (brand, line, version, body_type).
+     - If mode does not exist, fallback to mode of 
+       (vehicle_class, body_type).
+     - If still missing, fallback to mode of vehicle_class.
+ - Trucks: same logic, but valid range [1–4].
+
+************************************************************************/
 update vehicles_clean vc
 join vehicle_classes c 
     on vc.vehicle_class_id = c.vehicle_class_id
@@ -184,9 +203,26 @@ from vehicles_clean a
 left join vehicle_classes b on a.vehicle_class_id = b.vehicle_class_id
 group by b.vehicle_class;
 
--- step 7: correct engine displacement according to vehicle class rules
+/***********************************************************************
+ Step 7: Correct engine displacement (engine_displacement_cc)
+ ------------------------------------------------------------------------
+ 🎯 Objective:
+ - Ensure that engine displacement values are realistic for each vehicle class.
 
--- show engine displacement ranges per vehicle_class
+ 🛠️ Problem:
+ - Some motorcycles had unrealistically high displacements (1000–3000 cc).
+ - Some cars, pickups, and trucks had unrealistically small displacements (50–300 cc).
+
+ ✅ Solution / Approach:
+ - Define a valid range per vehicle class.
+ - Identify the most typical engine displacement per (class, brand, line).
+ - If a value is outside the range:
+     - Replace it with the typical displacement of that brand/line/class.
+ - For motorcycles: if the typical displacement is within [80–800], 
+   narrow the range to [80–800] to enforce stricter validation.
+
+************************************************************************/
+
 SELECT c.vehicle_class, b.brand_name, l.line_name, vc.engine_displacement_cc,
     COUNT(*) AS num_records,
     ROUND((COUNT(*) / SUM(COUNT(*)) OVER (PARTITION BY c.vehicle_class, b.brand_name, l.line_name
@@ -239,15 +275,27 @@ join adjusted_ranges ar on c.vehicle_class = ar.vehicle_class
 set vc.engine_displacement_cc = ar.typical_engine
 where vc.engine_displacement_cc < ar.min_cc or vc.engine_displacement_cc > ar.max_cc;
 
-    
-    
-    
-    
-    
--- step 8 correction of model_year
+/***********************************************************************
+ Step 8: Correct model year (model_year)
+ ------------------------------------------------------------------------
+ 🎯 Objective:
+ - Ensure consistency between `model_year` and `registration_date`.
 
--- create a cte with the valid min and max model_year per vehicle class, brand, line, and version
--- only considering records where model_year matches the year of registration_date
+ 🛠️ Problem:
+ - Some records had a `model_year` earlier than (registration_year - 2).
+ - Some had a `model_year` later than (registration_year + 2).
+ - Some even had model_year > current_year + 1.
+
+ ✅ Solution / Approach:
+ - Build valid ranges per (vehicle_class, brand, line, version) 
+   based only on records where `model_year = registration_year`.
+ - If `model_year` differs significantly from registration_year:
+     - Replace with registration_year if it falls within the valid range.
+ - Additional rule: if model_year > current_year + 1, 
+   always replace with registration_year.
+
+************************************************************************/
+
 with year_ranges as (
     select
         vc.vehicle_class_id,
