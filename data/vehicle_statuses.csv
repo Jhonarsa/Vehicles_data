@@ -1,0 +1,4 @@
+vehicle_status_id,vehicle_status
+1,Active
+2,Inactive
+3,Scrapped
